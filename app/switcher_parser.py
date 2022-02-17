@@ -1,17 +1,20 @@
 import binascii as ba
 
 
-class Data:
+class SwitcherData:
     def __init__(self, is_on: bool = False, current: float = -1.0, power: int = -1):
-        self._is_on = is_on
+        self.is_on = is_on
         self._current = current
         self._power = power
 
     def __str__(self):
-        return f"Status: {'ON ' if self._is_on else 'OFF'} Current={self._current:.1f}A Power={self._power}W"
+        return f"Status: {'ON ' if self.is_on else 'OFF'} Current={self._current:.1f}A Power={self._power}W"
 
     def status(self):
-        return "ON" if self._is_on else "OFF"
+        return "ON" if self.is_on else "OFF"
+
+    def active(self):
+        return self._power > 0
 
 
 def parse_data(raw_data: bytes):
@@ -26,4 +29,4 @@ def parse_data(raw_data: bytes):
     power = int(b[2:4] + b[0:2], 16)
     current = float(power) / float(220)
     is_on = data_str[266:270] != "0000"
-    return Data(is_on, current, power)
+    return SwitcherData(is_on, current, power)

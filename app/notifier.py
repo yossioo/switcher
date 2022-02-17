@@ -23,7 +23,7 @@ class Notifier:
         self._time_thermostat_on = None
         self._accumulated_j = 0
         self._last_update_time = None
-        self._prev_data = switcher_parser.Data()
+        self._prev_data = switcher_parser.SwitcherData()
 
         self.logger.info("Notifier constucted")
 
@@ -31,17 +31,17 @@ class Notifier:
         self._f_notify(text)
         self.logger.debug(text)
 
-    def update(self, data: switcher_parser.Data):
+    def update(self, data: switcher_parser.SwitcherData):
         now = time.time()
         if data._power > 0 and self._last_update_time != None:
             diff = now - self._last_update_time
             self._accumulated_j += data._power * diff
         self._last_update_time = now
-        if data._is_on != self._prev_data._is_on:
-            icon = ON_ICON if data._is_on else OFF_ICON
+        if data.is_on != self._prev_data.is_on:
+            icon = ON_ICON if data.is_on else OFF_ICON
             self.notify(f"{icon} Switch is **{data.status()}** now")
         if (
-            self._prev_data._is_on
+            self._prev_data.is_on
             and data._power > 0
             and self._time_thermostat_on is None
         ):
@@ -53,7 +53,7 @@ class Notifier:
             self._last_update_time = None
             kwh = self._accumulated_j / 3600000
             self._accumulated_j = 0
-            if data._is_on:
+            if data.is_on:
                 self.notify(
                     f"f{READY_ICON} Termostat is **OFF** after {diff:.1f} sec. (~{kwh} KWh)\nYou can take shower now!",
                 )
