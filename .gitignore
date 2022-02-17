@@ -1,0 +1,8 @@
+env/
+config/
+.vscode/
+__pycache__/
+
+app/config.ini
+app/bot.session
+app/users.yaml
