@@ -22,7 +22,7 @@ if __name__ == "__main__":
     pc = PyroClient()
     install_coloredlogs([sc._logger, pc._logger])
     sc.add_data_listener(pc.update_data)
-    pc.send_info_msg()
+    pc.send_info_msg("🔌 I'm online! 📡")
     pc.spin()
     sc.should_shutdown = True
     print("main done")

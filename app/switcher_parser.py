@@ -15,7 +15,7 @@ class SwitcherData:
         self._power = power
         self._auto_shutdown = auto_shutdown
         self._time_auto_shutdown = time_auto_shutdown
-
+    
     def __str__(self):
         return f"Status: {'ON ' if self.is_on else 'OFF'} Current={self._current:.1f}A Power={self._power}W"
         # return f"Status: {'ON ' if self.is_on else 'OFF'} Current={self._current:.1f}A Power={self._power}W\tAS:{self._auto_shutdown} will shutdown in {self._time_auto_shutdown}"

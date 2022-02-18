@@ -8,6 +8,7 @@ from pyrogram.types import (
 
 from switcher_parser import SwitcherData
 import messages
+from usage_calculator import UsageCalculator
 
 
 def load_users():
@@ -21,6 +22,7 @@ def load_users():
 class PyroClient:
     def __init__(self):
         self._logger = logging.getLogger("PyroClient")
+        self._calc = UsageCalculator()
         self._users = load_users()
         self._app = Client("bot")
         self._latest_start_messages = dict()
@@ -30,8 +32,8 @@ class PyroClient:
 
         def callback_query(client, query):
             self._logger.info(f"Got callback_query(..): {query.data}")
-            if query.data == "refresh_time":
-                self.send_info_msg()
+            if query.data == "refresh":
+                self.send_info_msg("Refresh button clicked")
 
         self._app.add_handler(CallbackQueryHandler(callback_query))
         self._data = SwitcherData()
@@ -46,6 +48,7 @@ class PyroClient:
 
     def update_data(self, data: SwitcherData):
         self._logger.debug(f"Got data: {data}")
+        self._calc.update_data(data)
         data_changed = False
         if data.is_on != self._data.is_on:
             self._logger.info("Data is_on changed, updating the message")
@@ -55,7 +58,7 @@ class PyroClient:
             data_changed = True
         self._data = data
         if data_changed:
-            self.send_info_msg()
+            self.send_info_msg("Data changed")
 
     def spin(self):
         self._logger.info("PyroClient going idle...")
@@ -63,7 +66,7 @@ class PyroClient:
         self._logger.warn("idle() done")
 
     def cb_start_cmd(self, client, message):
-        self.send_info_msg()
+        self.send_info_msg("Start command called")
 
     def get_markup(self, text_values):
         rows = []
@@ -94,33 +97,36 @@ class PyroClient:
         ]
 
         consumption = [
-            (messages.get_time_message("Active", 3878), "refresh_time"),
-            messages.kwh(10.456),
+            (messages.get_time_message("Active", self._calc.active_time), "refresh"),
+            (messages.kwh(self._calc.total_consumption_kwh), "refresh"),
         ]
+        result = [state]
+        if self._calc.counting:
+            result.append(consumption)
+        if self._data.is_on:
+            result.append(
+                [(f"ON for: {self._data.on_duration()}", "refresh")],
+            )
+        return self.get_markup(result)
 
-        return self.get_markup(
-            [
-                state,
-                consumption,
-                [(f"ON for: {self._data.on_duration()}", "refresh_time")],
-            ]
-            if self._data.is_on
-            else [
-                state,
-                consumption,
-            ]
-        )
-
-    def send_info_msg(self):
+    def send_info_msg(self, reason: str = "???"):
+        self._logger.info(f"Sending Info message because: {reason}")
         for u in self._users:
             k = int(u)
-            if self._latest_start_messages.get(k):
-                message = self._latest_start_messages.get(k)
-                self._logger.debug(f"Deleting message {message.message_id} for user {k}")
-                self._app.delete_messages(k, int(message.message_id))
+            # if self._data.active() and self._calc._accumulated_j > 0:
+            #     self._logger.info(
+            #         "Thermostat is active now, Calc has some data. Skipping deletion of the message"
+            #     )
+            # else:
+            #     if self._latest_start_messages.get(k):
+            #         message = self._latest_start_messages.get(k)
+            #         self._logger.debug(
+            #             f"Deleting message {message.message_id} for user {k}"
+            #         )
+            #         self._app.delete_messages(k, int(message.message_id))
             self._latest_start_messages[k] = self._app.send_message(
                 u,
-                "••••••••••••••••••••\n\n🔌 I'm online! 📡",
+                f"•••••••  {reason}  •••••••",
                 reply_markup=self.get_full_keyboard(),
                 # reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Hello")]]),
             )

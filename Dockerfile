@@ -16,5 +16,5 @@ RUN python3 -m pip install wheel
 RUN python3 -m pip install pyaes==1.6.1 Pyrogram==1.4.7 PySocks==1.7.1  TgCrypto==1.2.3 pyyaml==5.4.1 coloredlogs==15.0.1
 
 COPY app /app
-CMD [ "python3", "switcher.py" ]
+CMD [ "python3", "switcher_v2.py" ]
 
