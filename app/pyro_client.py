@@ -1,6 +1,6 @@
 import logging
 from pyrogram import Client, filters, idle
-from pyrogram.handlers import MessageHandler
+from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -27,6 +27,13 @@ class PyroClient:
         self._app.add_handler(
             MessageHandler(self.cb_start_cmd, filters=filters.command(["start"]))
         )
+
+        def callback_query(client, query):
+            self._logger.info(f"Got callback_query(..): {query.data}")
+            if query.data == "refresh_time":
+                self.send_info_msg()
+
+        self._app.add_handler(CallbackQueryHandler(callback_query))
         self._data = SwitcherData()
         # Ready to work
 
@@ -38,7 +45,7 @@ class PyroClient:
         # )
 
     def update_data(self, data: SwitcherData):
-        self._logger.info(f"Got data: {data}")
+        self._logger.debug(f"Got data: {data}")
         data_changed = False
         if data.is_on != self._data.is_on:
             self._logger.info("Data is_on changed, updating the message")
@@ -65,6 +72,10 @@ class PyroClient:
             for btn_txt in row_txt:
                 if isinstance(btn_txt, str):
                     row.append(InlineKeyboardButton(btn_txt, callback_data="-"))
+                elif isinstance(btn_txt, tuple):
+                    row.append(
+                        InlineKeyboardButton(btn_txt[0], callback_data=btn_txt[1])
+                    )
                 else:
                     self._logger.warn(
                         f"get_markup(..): Cannot add item {btn_txt} of type {type(btn_txt)}"
@@ -73,17 +84,30 @@ class PyroClient:
         return InlineKeyboardMarkup(rows)
 
     def get_full_keyboard(self):
+        state = [
+            messages.message_switch_on
+            if self._data.is_on
+            else messages.message_switch_off,
+            messages.message_thermostat_on
+            if self._data.active()
+            else messages.message_thermostat_off,
+        ]
+
+        consumption = [
+            (messages.get_time_message("Active", 3878), "refresh_time"),
+            messages.kwh(10.456),
+        ]
+
         return self.get_markup(
             [
-                [
-                    messages.message_switch_on
-                    if self._data.is_on
-                    else messages.message_switch_off,
-                    messages.message_thermostat_on
-                    if self._data.active()
-                    else messages.message_thermostat_off,
-                ],
-                [messages.get_time_message("Elapsed", 3878), messages.kwh(10.456)],
+                state,
+                consumption,
+                [(f"ON for: {self._data.on_duration()}", "refresh_time")],
+            ]
+            if self._data.is_on
+            else [
+                state,
+                consumption,
             ]
         )
 
@@ -92,7 +116,7 @@ class PyroClient:
             k = int(u)
             if self._latest_start_messages.get(k):
                 message = self._latest_start_messages.get(k)
-                self._logger.info(f"Deleting message {message.message_id} for user {k}")
+                self._logger.debug(f"Deleting message {message.message_id} for user {k}")
                 self._app.delete_messages(k, int(message.message_id))
             self._latest_start_messages[k] = self._app.send_message(
                 u,

@@ -3,12 +3,12 @@
 Run in docker:
 
 ```bash
-docker run -it --rm -v switcher-config:/config -p 20002:20002 yossiok/pyro-switcher
+docker run -it --rm -v switcher-config:/config -p 20002:20002/udp yossiok/pyro-switcher
 ```
 
 or 
 ```bash
-docker run -it --name pyrosw -v switcher-config:/config -p 20002:20002 yossiok/pyro-switcher
+docker run -it --name pyrosw -v switcher-config:/config -p 20002:20002/udp yossiok/pyro-switcher
 ```
 
 ## TODO:

@@ -28,15 +28,19 @@ class SwitcherClient:
     def run(self):
         try:
             self._sock.bind((self.UDP_IP, self.UDP_PORT))
+            self._logger.info("Listening now")
         except Exception as e:
             print(e)
 
         while not self.should_shutdown:
             now = time.time()
             try:
+                self._logger.debug("Waiting for a message")
                 raw_data, addr = self._sock.recvfrom(1024)
+                self._logger.debug("Got a message")
                 self._last_message_time = now
             except socket.timeout as e:
+                self._logger.debug("Timeout")
                 sec_since_update = now - self._last_message_time
                 if sec_since_update > 30 and sec_since_update % 30 < 1:
                     self._logger.warn(
